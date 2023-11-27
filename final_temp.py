@@ -5,8 +5,10 @@ import os
 from datetime import datetime
 from gtts import gTTS
 import pyttsx3
+
 # import socket
 import zmq
+
 
 def resize(img, size):
     width = int(img.shape[1] * size)
@@ -56,15 +58,22 @@ def markAttendance(name):
 
 EncodeList = findEncoding(studentImg)
 
-                                            # using ZeroMQ
+# using ZeroMQ
 
 context = zmq.Context()
 
-# Create a PUB socket
-socket = context.socket(zmq.PUB)
-socket.bind("tcp://*:5555") # Use TCP protocol on port 5555
+# Create a REQ socket
+socket = context.socket(zmq.REQ)
+socket.connect("tcp://192.168.149.85:5555")  # Connect to the publisher's address
+
+# Subscribe to all messages (empty string means all topics)
+# socket.setsockopt_string(zmq.SUBSCRIBE, "")
+
+# message = socket.recv_string()
+# print(f"Received: {message}")
 
 vid = cv2.VideoCapture(0)
+# vid = cv2.VideoCapture(1)
 
 while True:
     success, frame = vid.read()
@@ -97,11 +106,14 @@ while True:
             markAttendance(name)
             message = "Authorize Person"
             print(f"Published: {message}")
+        # elif EncodeList not in frame:
+        #     print("Show Your face")
         else:
             # If face is not recognized, send a message to the server using ZeroMQ
-            message = "Unauthorize Person!"
-            socket.send_string(message)
-            print(f"Published: {message}")
+            # message = "Unauthorize Person!"
+            # socket.send_string(message)
+            # print(f"Published: {message}")
+            print("Unauthorize Person!")
 
     cv2.imshow("sender_side_screen", frame)
     if cv2.waitKey(1) & 0xFF == ord("q"):
