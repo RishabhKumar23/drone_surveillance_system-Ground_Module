@@ -49,6 +49,45 @@ def markAttendance(name):
             tts = gTTS(text=statement, lang="en")
             tts.save("welcome.mp3")
             os.system("mpg321 welcome.mp3")  # install mpg321
+            
+def face_Dec(frame1,cam):
+    
+    # Resize frames
+    smaller_frame1 = cv2.resize(frame1, (0, 0), None, 0.25, 0.25)
+
+    # Find faces in the frames
+    faces_in_frame1 = face_rec.face_locations(smaller_frame1)
+    encode_faces_in_frame1 = face_rec.face_encodings(smaller_frame1, faces_in_frame1)
+
+    # Iterate over faces in camera 1
+    for encode_face, face_loc in zip(encode_faces_in_frame1, faces_in_frame1):
+        matches = face_rec.compare_faces(EncodeList, encode_face)
+        face_dis = face_rec.face_distance(EncodeList, encode_face)
+        match_index = np.argmin(face_dis)
+
+        if matches[match_index]:
+            name = studentName[match_index].upper()
+            y1, x2, y2, x1 = face_loc
+            y1, x2, y2, x1 = y1 * 4, x2 * 4, y2 * 4, x1 * 4
+            cv2.rectangle(frame1, (x1, y1), (x2, y2), (0, 255, 0), 3)
+            cv2.rectangle(frame1, (x1, y2 - 25), (x2, y2), (0, 255, 0), cv2.FILLED)
+            cv2.putText(
+                frame1,
+                name,
+                (x1 + 6, y2 - 6),
+                cv2.FONT_HERSHEY_COMPLEX,
+                1,
+                (255, 255, 255),
+                2,
+            )
+            markAttendance(name)
+            message = "Authorize Person"
+            print(f"Published (Camera 1): {message}")
+        else:
+            print(f"Unauthorize Person at: {cam}")
+    return frame1
+    
+
 
 # Find face encodings for loaded images
 EncodeList = findEncoding(studentImg)
@@ -77,68 +116,10 @@ while True:
     if not success2:
         print("Error capturing frame from Camera 2")
         break
-
-    # Resize frames
-    smaller_frame1 = cv2.resize(frame1, (0, 0), None, 0.25, 0.25)
-    smaller_frame2 = cv2.resize(frame2, (0, 0), None, 0.25, 0.25)
-
-    # Find faces in the frames
-    faces_in_frame1 = face_rec.face_locations(smaller_frame1)
-    encode_faces_in_frame1 = face_rec.face_encodings(smaller_frame1, faces_in_frame1)
-
-    faces_in_frame2 = face_rec.face_locations(smaller_frame2)
-    encode_faces_in_frame2 = face_rec.face_encodings(smaller_frame2, faces_in_frame2)
-
-    # Iterate over faces in camera 1
-    for encode_face, face_loc in zip(encode_faces_in_frame1, faces_in_frame1):
-        matches = face_rec.compare_faces(EncodeList, encode_face)
-        face_dis = face_rec.face_distance(EncodeList, encode_face)
-        match_index = np.argmin(face_dis)
-
-        if matches[match_index]:
-            name = studentName[match_index].upper()
-            y1, x2, y2, x1 = face_loc
-            y1, x2, y2, x1 = y1 * 4, x2 * 4, y2 * 4, x1 * 4
-            cv2.rectangle(frame1, (x1, y1), (x2, y2), (0, 255, 0), 3)
-            cv2.rectangle(frame1, (x1, y2 - 25), (x2, y2), (0, 255, 0), cv2.FILLED)
-            cv2.putText(
-                frame1,
-                name,
-                (x1 + 6, y2 - 6),
-                cv2.FONT_HERSHEY_COMPLEX,
-                1,
-                (255, 255, 255),
-                2,
-            )
-            markAttendance(name)
-            message = "Authorize Person"
-            print(f"Published (Camera 1): {message}")
-
-    # Iterate over faces in camera 2
-    for encode_face, face_loc in zip(encode_faces_in_frame2, faces_in_frame2):
-        matches = face_rec.compare_faces(EncodeList, encode_face)
-        face_dis = face_rec.face_distance(EncodeList, encode_face)
-        match_index = np.argmin(face_dis)
-
-        if matches[match_index]:
-            name = studentName[match_index].upper()
-            y1, x2, y2, x1 = face_loc
-            y1, x2, y2, x1 = y1 * 4, x2 * 4, y2 * 4, x1 * 4
-            cv2.rectangle(frame2, (x1, y1), (x2, y2), (0, 255, 0), 3)
-            cv2.rectangle(frame2, (x1, y2 - 25), (x2, y2), (0, 255, 0), cv2.FILLED)
-            cv2.putText(
-                frame2,
-                name,
-                (x1 + 6, y2 - 6),
-                cv2.FONT_HERSHEY_COMPLEX,
-                1,
-                (255, 255, 255),
-                2,
-            )
-            markAttendance(name)
-            message = "Authorize Person"
-            print(f"Published (Camera 2): {message}")
-
+    
+    frame1 = face_Dec(frame1,1)
+    frame2 = face_Dec(frame2,2)
+    
     # Display frames from both cameras
     cv2.imshow("Camera 1", frame1)
     cv2.imshow("Camera 2", frame2)
