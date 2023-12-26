@@ -4,8 +4,14 @@ import face_recognition as face_rec
 import os
 from datetime import datetime
 from gtts import gTTS
-import pyttsx3
-import zmq
+import pygame
+import socket
+import time
+
+# connection to server
+client_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+client_socket.connect(("192.168.190.85",8889)) # server ip and port
+
 
 # Function to resize images
 def resize(img, size):
@@ -36,19 +42,35 @@ def findEncoding(images):
     return imgEncodings
 
 # Function to mark attendance
+
 def markAttendance(name):
-    with open("Timing.csv", "r+") as f:
+    with open("DataBase.csv", "r+") as f:
         myDatalist = f.readlines()
         nameList = [entry.split(",")[0] for entry in myDatalist]
-
-        if name not in nameList:
+        pygame.mixer.init()
+        if name == "unAuth":
             now = datetime.now()
             timestr = now.strftime("%H:%M")
             f.writelines(f"\n{name}, {timestr}")
-            statement = f"Welcome, {name}"
+            
+            statement = f"Unauthorize detected"
             tts = gTTS(text=statement, lang="en")
-            tts.save("welcome.mp3")
-            os.system("mpg321 welcome.mp3")  # install mpg321
+            tts.save("Sound/unauthorize.mp3")
+            pygame.mixer.music.load("Sound/unauthorize.mp3")
+            pygame.mixer.music.play()
+            time.sleep(1)
+            return
+        
+        now = datetime.now()
+        timestr = now.strftime("%H:%M")
+        f.writelines(f"\n{name}, {timestr}")
+        statement = f"Welcome"
+        tts = gTTS(text=statement, lang="en")
+        tts.save("Sound/welcome.mp3")
+        pygame.mixer.music.load("Sound/welcome.mp3")
+        pygame.mixer.music.play()
+        time.sleep(1)
+        
             
 def face_Dec(frame1,cam):
     
@@ -84,7 +106,11 @@ def face_Dec(frame1,cam):
             message = "Authorize Person"
             print(f"Published (Camera 1): {message}")
         else:
-            print(f"Unauthorize Person at: {cam}")
+            unAuth = f"Unauthorize Person at: {cam}"
+            print(unAuth)
+            name = "unAuth"
+            markAttendance(name)
+            client_socket.send(unAuth.encode())
     return frame1
     
 
@@ -92,41 +118,35 @@ def face_Dec(frame1,cam):
 # Find face encodings for loaded images
 EncodeList = findEncoding(studentImg)
 
-# Using ZeroMQ
-# context = zmq.Context()
-
-# Create REQ sockets for two cameras
-# socket1 = context.socket(zmq.REQ)
-# socket1.connect("tcp://192.168.149.85:5555")  # Connect to the publisher's address
 
 # Open two video capture objects for two cameras
 vid1 = cv2.VideoCapture(0)
-vid2 = cv2.VideoCapture(2)
+# vid2 = cv2.VideoCapture(2)
 
 while True:
     # Read frames from both cameras
     success1, frame1 = vid1.read() 
-    success2, frame2 = vid2.read()
+    # success2, frame2 = vid2.read()
 
     # Check if frames are successfully captured
     if not success1:
         print("Error capturing frame from Camera 1")
         break
 
-    if not success2:
-        print("Error capturing frame from Camera 2")
-        break
+    # if not success2:
+    #     print("Error capturing frame from Camera 2")
+    #     break
     
     frame1 = face_Dec(frame1,1)
-    frame2 = face_Dec(frame2,2)
+    # frame2 = face_Dec(frame2,2)
     
     # Display frames from both cameras
     cv2.imshow("Camera 1", frame1)
-    cv2.imshow("Camera 2", frame2)
+    # cv2.imshow("Camera 2", frame2)
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
 vid1.release()
-vid2.release()
+# vid2.release()
 cv2.destroyAllWindows()

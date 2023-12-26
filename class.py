@@ -10,7 +10,7 @@ import socket
 
 # connection to server
 client_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-client_socket.connect(("192.168.38.85",8889)) # server ip and port 
+client_socket.connect(("192.168.221.85",8889)) # server ip and port 
 
 class FaceRecognitionSystem:
     def __init__(self, path="authorization_persons", video_source=0):
